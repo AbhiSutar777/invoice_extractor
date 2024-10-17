@@ -1,0 +1,76 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-10-17 22:45:00.213340",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_lrhf",
+  "po_number",
+  "column_break_bxqs",
+  "attach_copy",
+  "section_break_rhov",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_lrhf",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Upload Customer PO",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "po_number",
+   "fieldtype": "Data",
+   "label": "PO Number"
+  },
+  {
+   "fieldname": "column_break_bxqs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "attach_copy",
+   "fieldtype": "Attach",
+   "label": "Attach Copy"
+  },
+  {
+   "fieldname": "section_break_rhov",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2024-10-17 22:45:59.438442",
+ "modified_by": "Administrator",
+ "module": "Invoice Extractor",
+ "name": "Upload Customer PO",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
