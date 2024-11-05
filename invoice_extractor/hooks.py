@@ -122,13 +122,19 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	# "*": {
+	# 	"on_update": "method",
+	# 	"on_cancel": "method",
+	# 	"on_trash": "method"
+	# }
+	"Upload Customer PO": {
+	"before_save" : [
+		"invoice_extractor.invoice_extractor.doctype.upload_customer_po.upload_customer_po.create_sales_order_from_po",
+		"invoice_extractor.invoice_extractor.doctype.upload_customer_po.upload_customer_po.process_po_data"				  
+	],
+	}
+}
 
 # Scheduled Tasks
 # ---------------
