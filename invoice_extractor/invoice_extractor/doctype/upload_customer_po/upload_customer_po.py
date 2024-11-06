@@ -81,19 +81,19 @@ def process_po_data(doc, method=None):
     except Exception as e:
         frappe.throw(f"File processing error: {e}")
 
-    prompt = """
-    Please extract the following information from the purchase order document:
+    # prompt = """
+    # Please extract the following information from the purchase order document:
 
-    1.Customer Name (the entity that raised the Purchase Order)
-    2.Purchase Order Number
-    3.Purchase Order Issue Date
-    4.Required By Date
-    5.An Item table in CSV format with the following columns:
-            i.Item Name or Item Description
-            ii.Quantity
-            iii.Rate or Discounted Rate
-            iv.Unit of Measure
-    Ensure all extracted dates are formatted as 'yyyy/mm/dd'. Save the extracted data in the following variables: customer_name, po_no, po_date, required_date, and item_table. Provide only specific values without any additional information."""
+    # 1.Customer Name (the entity that raised the Purchase Order)
+    # 2.Purchase Order Number
+    # 3.Purchase Order Issue Date
+    # 4.Required By Date
+    # 5.An Item table in CSV format with the following columns:
+    #         i.Item Name or Item Description
+    #         ii.Quantity
+    #         iii.Rate or Discounted Rate
+    #         iv.Unit of Measure
+    # Ensure all extracted dates are formatted as 'yyyy/mm/dd'. Save the extracted data in the following variables: customer_name, po_no, po_date, required_date, and item_table. Provide only specific values without any additional information."""
 
 
     # Generate content using the Gemini model with the uploaded file
@@ -115,7 +115,7 @@ def process_po_data(doc, method=None):
             "role": "user",
             "parts": [
                 gemini_file,  # Attach the uploaded file
-                "Extract a Customer name (entity who raised the Purchase Order), Purchase Order Number, Purchase Order Issue Date, Required By Date, and an Item table in CSV format with columns: Item Name or Item Description, Quantity, Rate or Discounted Rate, Unit Of Measure. Provide specific values only. Save data in customer_name,po_no,po_date,required_date,item_table. Extract all dates in 'yyyy/mm/dd' format."
+                "Extract a Customer name (entity who raised the Purchase Order), Purchase Order Number, Purchase Order Issue Date, Required By Date, and an Item table in CSV format with columns: Item Name or Item Description, Quantity, Rate or Discounted Rate, Unit Of Measure. Provide specific values only. Save data in customer_name,po_no,po_date,required_date,item_table. Extract all dates in 'yyyy/mm/dd' format. Find Item Name from the whole description if item Name not available"
             ]
         }
 
