@@ -16,8 +16,10 @@ import json
 import csv
 import io
 import re 
+from frappe.utils import get_bench_path
+from frappe import throw
 
-# Load environment variables
+# # Load environment variables
 load_dotenv()  # Load all environment variables including GOOGLE_API_KEY
 
 # Set up Google Gemini API key
@@ -33,7 +35,7 @@ def upload_to_gemini(path, mime_type=None):
 # Function to wait for files to become active after upload
 def wait_for_files_active(files):
     """Waits for the given files to be active."""
-    # frappe.msgprint("Waiting for file processing...")
+    # # frappe.msgprint("Waiting for file processing...")
     for name in (file.name for file in files):
         file = genai.get_file(name)
         while file.state.name == "PROCESSING":
@@ -44,16 +46,159 @@ def wait_for_files_active(files):
             raise Exception(f"File {file.name} failed to process")
     # frappe.msgprint("...all files ready")
 
+# # # Gemini-1.5.Pro model------------------------------------------------------------------------------------------------------------------------------
+# @frappe.whitelist()
+# def process_po_data(doc, method=None):
+#     # # Get the attached file (PDF) from the 'attach_copy' field
+#     if not doc.attach_copy:
+#         frappe.throw("Please upload a PO copy in the 'attach_copy' field.")
+
+#     # # Get the file URL from the document
+#     file_url = doc.attach_copy
+
+#     # # Determine if the file is private or public
+#     is_private = file_url.startswith('/private/files/')
+#     if is_private:
+#         file_name = file_url.split("/private/files/")[1]
+#     elif file_url.startswith('/files/'):
+#         file_name = file_url.split("/files/")[1]
+#     else:
+#         frappe.throw("Unsupported file location.")
+
+#     # # Construct the file path using get_bench_path and get_path
+#     file_path = frappe.utils.get_bench_path() + "/sites/" + frappe.utils.get_path('private' if is_private else 'public', 'files', file_name)[2:]
+
+#     # # Ensure the file exists
+#     if not frappe.db.exists("File", {'file_name': file_name}):
+#         frappe.throw(f"File {doc.attach_copy} does not exist.")
+
+#     # # Upload the file to Google Gemini
+#     try:
+#         gemini_file = upload_to_gemini(file_path, mime_type="application/pdf")
+#     except Exception as e:
+#         frappe.throw(f"Failed to upload file to Gemini: {e}")
+
+#     # # Wait for the file to be processed
+#     try:
+#         wait_for_files_active([gemini_file])
+#     except Exception as e:
+#         frappe.throw(f"File processing error: {e}")
+
+
+#     # # Generate content using the Gemini model with the uploaded file
+#     try:
+#         # Use Gemini 1.5 Pro model
+#         model = genai.GenerativeModel(
+#             model_name="gemini-1.5-pro",
+#             generation_config={
+#                 "temperature": 0.2,
+#                 "top_p": 0.90,
+#                 "top_k": 50,
+#                 "max_output_tokens": 15000,
+#                 "response_mime_type": "application/json",
+#             },
+#         )
+
+#         # # Define the prompt with the file
+#         prompt = {
+#             "role": "user",
+#             "parts": [
+#                 gemini_file,  # Attach the uploaded file
+#                 """Extract a Customer name (entity who raised the Purchase Order), Purchase Order Number, Purchase Order Issue Date, Required By Date, 
+#                 and an Item table in CSV format with columns: Item Name or Item Description, Quantity, Rate or Discounted Rate, Unit Of Measure. Provide specific values only. 
+#                 Save data in customer_name,po_no,po_date,required_date,item_table. Extract all dates in 'yyyy/mm/dd' format. 
+#                 Find Item Name from the whole description if item Name not available"""
+
+#                 # """
+#                 # Extract a Customer name (entity who raised the Purchase Order), Purchase Order Number, Purchase Order Issue Date, Required By Date, 
+#                 # and an Item table in CSV format with columns: Item Name or Item Description, Quantity, Rate or Discounted Rate, Unit Of Measure. Provide specific values only. 
+#                 # Save data in customer_name, po_no, po_date, required_date, item_table. Extract all dates in 'yyyy/mm/dd' format. 
+#                 # Find Item Name from the whole description if item Name not available. 
+#                 # Also, extract all items listed in the PDF and include them in the item table. Make sure to consider every unique item mentioned and extract relevant details like name or description, quantity, rate, and unit of measure.
+#                 # """
+
+#             ]
+#         }
+
+#         # # Generate the response
+#         chat_session = model.start_chat(history=[prompt])
+#         response = chat_session.send_message("Start processing")
+
+#         # # Parse the response JSON
+#         po_data = json.loads(response.text)
+
+#         # # Extract individual variables from JSON response
+#         customer_name = po_data.get("customer_name", "N/A")
+#         po_no = po_data.get("po_no", "N/A")
+#         po_date = po_data.get("po_date", "N/A")
+#         required_date = po_data.get("required_date", "N/A")
+#         item_table_csv = po_data.get("item_table", "N/A")
+
+#     except Exception as e:
+#         frappe.throw(f"Failed to get response from Google Gemini: {e}")
+
+#     # # Print the extracted data separately
+#     # frappe.msgprint(f"Customer Name: {customer_name}")
+#     # frappe.msgprint(f"Purchase Order Number: {po_no}")
+#     # frappe.msgprint(f"Purchase Order Issue Date: {po_date}")
+#     # frappe.msgprint(f"Required By Date: {required_date}")
+    
+#     # # Process the CSV data
+#     item_table = []
+#     if item_table_csv != "N/A":
+#         try:
+#             # # Check if item_table_csv is already a list or needs conversion to CSV format
+#             if isinstance(item_table_csv, list):
+#                 # # Convert the list to CSV string
+#                 output = io.StringIO()
+#                 csv_writer = csv.writer(output)
+#                 # # Write header with underscores and lowercase
+#                 csv_writer.writerow(["item_name", "qty", "rate", "uom"])
+#                 # # Write each item
+#                 for item in item_table_csv:
+#                     csv_writer.writerow([
+#                         item.get("Item Name or Item Description"),
+#                         item.get("Quantity"),
+#                         item.get("Rate or Discounted Rate"),
+#                         item.get("Unit Of Measure")
+#                     ])
+#                 item_table_csv = output.getvalue()  # Get the CSV string
+            
+#             # # Use csv.reader to parse the CSV data
+#             csv_reader = csv.reader(io.StringIO(item_table_csv))
+#             header = next(csv_reader)  # Get the header
+#             for row in csv_reader:
+#                 item_dict = dict(zip(header, row))  # Create a dictionary for each row
+#                 item_table.append(item_dict)
+    
+#             # # Display item table data (if needed)
+#             # frappe.msgprint("Item Table:")
+#             # for item in item_table:
+#             #     frappe.msgprint(f"Item: {item['item_name_or_item_description']}, Quantity: {item['quantity']}, Rate: {item['rate_or_discounted_rate']}, UOM: {item['unit_of_measure']}")
+#         except Exception as e:
+#             frappe.throw(f"Error processing item table CSV: {e}")
+
+
+#     # return {
+#     #     "customer_name": customer_name,
+#     #     "po_no": po_no,
+#     #     "po_date": po_date,
+#     #     "required_date": required_date,
+#     #     "item_table": item_table
+#     # }
+#     return customer_name, po_no, po_date, required_date, item_table
+
+# # # Gemini-1.5.Flash model------------------------------------------------------------------------------------------------------------------------------
 @frappe.whitelist()
 def process_po_data(doc, method=None):
-    # Get the attached file (PDF) from the 'attach_copy' field
+    # # Get the attached file (PDF) from the 'attach_copy' field
     if not doc.attach_copy:
         frappe.throw("Please upload a PO copy in the 'attach_copy' field.")
 
-    # Get the file URL from the document
+    # # Get the file URL from the document
     file_url = doc.attach_copy
 
-    # Determine if the file is private or public
+    # # Determine if the file is private or public
     is_private = file_url.startswith('/private/files/')
     if is_private:
         file_name = file_url.split("/private/files/")[1]
@@ -62,10 +207,10 @@ def process_po_data(doc, method=None):
     else:
         frappe.throw("Unsupported file location.")
 
-    # Construct the file path using get_bench_path and get_path
-    file_path = frappe.utils.get_bench_path() + "/sites/" + frappe.utils.get_path('private' if is_private else 'public', 'files', file_name)[2:]
+    # # Construct the file path using get_bench_path and get_path
+    file_path = get_bench_path() + "/sites/" + frappe.utils.get_path('private' if is_private else 'public', 'files', file_name)[2:]
 
-    # Ensure the file exists
+    # # Ensure the file exists
     if not frappe.db.exists("File", {'file_name': file_name}):
         frappe.throw(f"File {doc.attach_copy} does not exist.")
 
@@ -75,56 +220,63 @@ def process_po_data(doc, method=None):
     except Exception as e:
         frappe.throw(f"Failed to upload file to Gemini: {e}")
 
-    # Wait for the file to be processed
+    # # Wait for the file to be processed
     try:
         wait_for_files_active([gemini_file])
     except Exception as e:
         frappe.throw(f"File processing error: {e}")
 
-    # prompt = """
-    # Please extract the following information from the purchase order document:
-
-    # 1.Customer Name (the entity that raised the Purchase Order)
-    # 2.Purchase Order Number
-    # 3.Purchase Order Issue Date
-    # 4.Required By Date
-    # 5.An Item table in CSV format with the following columns:
-    #         i.Item Name or Item Description
-    #         ii.Quantity
-    #         iii.Rate or Discounted Rate
-    #         iv.Unit of Measure
-    # Ensure all extracted dates are formatted as 'yyyy/mm/dd'. Save the extracted data in the following variables: customer_name, po_no, po_date, required_date, and item_table. Provide only specific values without any additional information."""
-
-
-    # Generate content using the Gemini model with the uploaded file
+    # # Generate content using the Gemini model with the uploaded file
     try:
-        # Use Gemini 1.5 Pro model
+        # # Use the "gemini-1.5-flash" model
         model = genai.GenerativeModel(
-            model_name="gemini-1.5-pro",
+            model_name="gemini-1.5-flash",
             generation_config={
                 "temperature": 0,
                 "top_p": 0.95,
                 "top_k": 40,
-                "max_output_tokens": 15000,
+                "max_output_tokens": 15000,  # Reduced token limit to avoid large responses
                 "response_mime_type": "application/json",
             },
         )
 
-        # Define the prompt with the file
+        # # Define the prompt with the file
         prompt = {
             "role": "user",
             "parts": [
                 gemini_file,  # Attach the uploaded file
-                "Extract a Customer name (entity who raised the Purchase Order), Purchase Order Number, Purchase Order Issue Date, Required By Date, and an Item table in CSV format with columns: Item Name or Item Description, Quantity, Rate or Discounted Rate, Unit Of Measure. Provide specific values only. Save data in customer_name,po_no,po_date,required_date,item_table. Extract all dates in 'yyyy/mm/dd' format. Find Item Name from the whole description if item Name not available"
+                """Extract a Customer name (entity who raised the Purchase Order), Purchase Order Number, Purchase Order Issue Date, Required By Date, 
+                and an Item table in CSV format with columns: Item Name or Item Description, Quantity, Rate or Discounted Rate, Unit Of Measure. Provide specific values only. 
+                Save data in customer_name,po_no,po_date,required_date,item_table. Extract all dates in 'yyyy/mm/dd' format. 
+                Find Item Code from the whole description if item Name not available. It Item Code not available get Item Name. item Name can be longer and can contain alphabets."""
+
+                # """
+                # Extract a Customer name (entity who raised the Purchase Order), Purchase Order Number, Purchase Order Issue Date, Required By Date, 
+                # and an Item table in CSV format with columns: Item Name or Item Description, Quantity, Rate or Discounted Rate, Unit Of Measure. Provide specific values only. 
+                # Save data in customer_name, po_no, po_date, required_date, item_table. Extract all dates in 'yyyy/mm/dd' format. 
+                # Find Item Name from the whole description if item Name not available. 
+                # Also, extract all items listed in the PDF and include them in the item table. Make sure to consider every unique item mentioned and extract relevant details like name or description, quantity, rate, and unit of measure.
+                # """
             ]
         }
 
-        # Generate the response
+        # # Generate the response
         chat_session = model.start_chat(history=[prompt])
         response = chat_session.send_message("Start processing")
 
-        # Parse the response JSON
-        po_data = json.loads(response.text)
+        # # Log the raw response text for debugging
+        response_text = response.text
+        frappe.logger().info(f"Raw response from Gemini: {response_text[:1000]}")  # Log first 1000 chars for inspection
+
+        # # Try to parse the JSON response
+        try:
+            po_data = json.loads(response_text)
+        except json.JSONDecodeError as e:
+            frappe.throw(f"Failed to parse Gemini response: {str(e)}. Raw response: {response_text[:500]}")
+        
+        # # Check if the JSON is valid and complete
+        if 'customer_name' not in po_data or 'po_no' not in po_data or 'item_table' not in po_data:
+            frappe.throw(f"Response from Gemini seems incomplete. Raw response: {response_text[:1000]}")
 
         # Extract individual variables from JSON response
         customer_name = po_data.get("customer_name", "N/A")
@@ -136,17 +288,11 @@ def process_po_data(doc, method=None):
     except Exception as e:
         frappe.throw(f"Failed to get response from Google Gemini: {e}")
 
-    # # Print the extracted data separately
-    # frappe.msgprint(f"Customer Name: {customer_name}")
-    # frappe.msgprint(f"Purchase Order Number: {po_no}")
-    # frappe.msgprint(f"Purchase Order Issue Date: {po_date}")
-    # frappe.msgprint(f"Required By Date: {required_date}")
-    
-    # Process the CSV data
+    # # Process the CSV data
     item_table = []
     if item_table_csv != "N/A":
         try:
-            # Check if item_table_csv is already a list or needs conversion to CSV format
+            # # Check if item_table_csv is already a list or needs conversion to CSV format
             if isinstance(item_table_csv, list):
                 # Convert the list to CSV string
                 output = io.StringIO()
@@ -163,50 +309,46 @@ def process_po_data(doc, method=None):
                     ])
                 item_table_csv = output.getvalue()  # Get the CSV string
             
-            # Use csv.reader to parse the CSV data
+            # # Use csv.reader to parse the CSV data
             csv_reader = csv.reader(io.StringIO(item_table_csv))
             header = next(csv_reader)  # Get the header
             for row in csv_reader:
                 item_dict = dict(zip(header, row))  # Create a dictionary for each row
                 item_table.append(item_dict)
-    
-            # Display item table data (if needed)
-            # frappe.msgprint("Item Table:")
-            # for item in item_table:
-            #     frappe.msgprint(f"Item: {item['item_name_or_item_description']}, Quantity: {item['quantity']}, Rate: {item['rate_or_discounted_rate']}, UOM: {item['unit_of_measure']}")
+
         except Exception as e:
             frappe.throw(f"Error processing item table CSV: {e}")
 
-
-    # return {
-    #     "customer_name": customer_name,
-    #     "po_no": po_no,
-    #     "po_date": po_date,
-    #     "required_date": required_date,
-    #     "item_table": item_table
-    # }
     return customer_name, po_no, po_date, required_date, item_table
 
+# # # Create Sales Order------------------------------------------------------------------------------------------------------------------------------
 @frappe.whitelist()
 def create_sales_order_from_po(doc, method=None):
-    # Call the process_po_data function to extract the data
+    # # Parse the incoming document if it's a string
+    doc = frappe.parse_json(doc)
+
+    # # Load the actual Document object using its doctype and name
+    doc = frappe.get_doc(doc.get('doctype'), doc.get('name'))
+
+    # # Call the process_po_data function to extract the data
     customer_name, po_no, po_date, required_date, item_table = process_po_data(doc)
 
-    # Now call the create_sales_order with the extracted values
+    # # Now call the create_sales_order with the extracted values
     create_sales_order(customer_name, po_no, po_date, required_date, item_table)
+
 
 def create_sales_order(customer_name, po_no, po_date, required_date, item_table):
     """
     Function to create a Sales Order from the extracted PO data.
     """
 
-    # Convert required_date to a date object for comparison
+    # # Convert required_date to a date object for comparison
     required_date = frappe.utils.getdate(required_date)
     today = frappe.utils.getdate(frappe.utils.today())
 
-    frappe.msgprint(f"Converted Required Date: {required_date}")
+    # # frappe.msgprint(f"Converted Required Date: {required_date}")
     
-    # Compare the required_date with today's date
+    # # Compare the required_date with today's date
     if required_date < today:
         customer_requirement_date = today
     else:
@@ -214,27 +356,36 @@ def create_sales_order(customer_name, po_no, po_date, required_date, item_table)
 
     # frappe.msgprint(f"Customer Requirement Date: {customer_requirement_date}")
 
-    # Check if customer exists, if not create new
+    # # Check if customer exists, if not create new
     customer = get_or_create_customer(customer_name)
 
-    # Prepare item table for sales order
+    # # Prepare item table for sales order
     items_list = []
-    for item in item_table:
+    for idx, item in enumerate(item_table):
+    # # for item in item_table:
         item_name = item.get("item_name")
         qty = float(item.get("qty", 0))  # Default to 0 if quantity is missing
         rate = item.get("rate", "0")  # Default to "0" if rate is missing
         uom = item.get("uom", "Nos")  # Default to "Nos" if UOM is missing
 
-        # Clean the rate by removing non-numeric characters and convert to float
-        rate_cleaned = float(re.sub(r'[^\d.]', '', str(rate)))
+        # # Clean the rate by removing non-numeric characters and convert to float
+        rate_cleaned = re.sub(r'[^\d.]', '', str(rate))
 
-        # Check if item exists, if not create new
+        # # If rate is null then assign 0 and print message..
+        if rate_cleaned:
+            rate_cleaned = float(rate_cleaned)
+        else:
+            # Handle the case where rate is empty or invalid
+            frappe.msgprint(f"Invalid rate value for item: {item.get('item_name', 'Unknown')}")
+            rate_cleaned = 0 
+
+        # # Check if item exists, if not create new
         item_code = get_or_create_item(item_name)
 
-        # Ensure UOM exists, if not create it
+        # # Ensure UOM exists, if not create it
         uom_name = get_or_create_uom(uom)  # Pass the cleaned UOM
 
-        # Add the item to the sales order item list
+        # # Add the item to the sales order item list
         items_list.append({
             "item_code": item_code,
             "qty": qty,
@@ -243,11 +394,7 @@ def create_sales_order(customer_name, po_no, po_date, required_date, item_table)
             "delivery_date" : customer_requirement_date
         })
 
-    # Ensure the requirement date is valid
-    # customer_requirement_date = frappe.utils.getdate(required_date) if required_date >= frappe.utils.today() else frappe.utils.today()
-    
-
-    # Create a new Sales Order
+    # # Create a new Sales Order
     sales_order = frappe.get_doc({
         "doctype": "Sales Order",
         "customer": customer.name,
@@ -257,21 +404,27 @@ def create_sales_order(customer_name, po_no, po_date, required_date, item_table)
         "items": items_list,
     })
 
-    # Save and optionally submit the Sales Order
+    # # Save and optionally submit the Sales Order
     sales_order.save()
     # sales_order.submit()  # Uncomment to submit the Sales Order
 
+    # # Show success message
+    frappe.msgprint(
+        f"Sales Forecast Upload Records created successfully. Click on "
+        f"<a href='http://127.0.0.1:8000/app/sales-order/{sales_order.name}' target='_blank'>{sales_order.name}</a> to view the Sales Order."
+    )
     return sales_order.name
 
 
+# # # Check If UOM exists in system or not------------------------------------------------------------------------------------------------------------------------------
 def get_or_create_uom(uom_name):
     """
     Check if a Unit of Measure (UOM) exists by name, if not, create a new UOM.
     """
-    # Standardize the UOM name to uppercase for consistent checks
+    # # Standardize the UOM name to uppercase for consistent checks
     uom_name = uom_name.upper()
 
-    # Check if the UOM exists in a case-insensitive way
+    # # Check if the UOM exists in a case-insensitive way
     if not frappe.db.exists("UOM", {"uom_name": uom_name}):
         uom = frappe.new_doc("UOM")
         uom.uom_name = uom_name
@@ -280,6 +433,7 @@ def get_or_create_uom(uom_name):
 
     return uom_name  # Return the standardized UOM name
 
+# # # Check If Customer exists in system or not------------------------------------------------------------------------------------------------------------------------------
 def get_or_create_customer(customer_name):
     """
     Check if a customer exists by name, if not, create a new customer.
@@ -290,10 +444,11 @@ def get_or_create_customer(customer_name):
         customer = frappe.new_doc("Customer")
         customer.customer_name = customer_name
         customer.save()
-        frappe.msgprint(f"New customer '{customer_name}' created.")
+        # frappe.msgprint(f"New customer '{customer_name}' created.")
 
     return customer
 
+# # # Check If Item exists in system or not------------------------------------------------------------------------------------------------------------------------------
 def get_or_create_item(item_name):
     """
     Check if an item exists by name, if not, create a new item.
@@ -306,7 +461,7 @@ def get_or_create_item(item_name):
         item.item_code = item_name
         item.item_group = "All Item Groups"  # Set the default item group
         item.save()
-        frappe.msgprint(f"New item '{item_name}' created.")
+        # frappe.msgprint(f"New item '{item_name}' created.")
 
     return item.item_code  # Return the item_code
 
