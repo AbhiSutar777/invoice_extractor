@@ -131,7 +131,8 @@ doc_events = {
 	"Upload Customer PO": {
 	"before_save" : [
 		# "invoice_extractor.invoice_extractor.doctype.upload_customer_po.upload_customer_po.create_sales_order_from_po",
-		# "invoice_extractor.invoice_extractor.doctype.upload_customer_po.upload_customer_po.process_po_data"				  
+		# "invoice_extractor.invoice_extractor.doctype.upload_customer_po.upload_customer_po.process_po_data",
+		"invoice_extractor.invoice_extractor.doctype.upload_customer_po.upload_customer_po.set_po_no_as_doc_name",				  
 	],
 	}
 }
