@@ -1,4 +1,7 @@
 pandas
 numpy
+streamlit
+pillow
 google-generativeai
 python-dotenv
+PyPDF2
