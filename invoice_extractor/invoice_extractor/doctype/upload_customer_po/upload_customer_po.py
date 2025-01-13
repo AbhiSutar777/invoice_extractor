@@ -24,8 +24,11 @@ from PyPDF2 import PdfReader, PdfWriter
 # # Load environment variables
 load_dotenv()  # Load all environment variables including GOOGLE_API_KEY
 
+google_api_key = frappe.db.get_value("Google API", {'name': 'Gemini 1.5 Flash'}, "api_key")
+
 # Set up Google Gemini API key
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+# genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+genai.configure(api_key=google_api_key)
 
 # Function to split the PDF into chunks
 def split_pdf(file_path, chunk_size=10):
