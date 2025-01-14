@@ -12,20 +12,20 @@ By automating the extraction, verification, and record creation processes, Invoi
 
 ## Installation Steps
 
-# 1. Download the app using CLI.
+1. Download the app using CLI.
 
 	```bash
     bench get-app --branch [branch_name] https://github.com/AbhiSutar777/invoice_extractor.git 
     ```
 
-# 2. Download the required libraries.
+2. Download the required libraries.
 	Path/to/your/frappe-bench
 
 	```bash
     pip install -r apps/invoice_extractor/requirements.txt
     ```
 
-# 3. Install the app on your site
+3. Install the app on your site
 	
 	```bash
 	bench --site [your_site_name] install-app invoice_extractor
