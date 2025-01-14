@@ -7,7 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "google_api_version",
-  "api_key"
+  "api_key",
+  "default"
  ],
  "fields": [
   {
@@ -20,11 +21,17 @@
    "fieldtype": "Data",
    "label": "Google Api Version",
    "unique": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "default",
+   "fieldtype": "Check",
+   "label": "Default"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-01-11 18:16:27.621585",
+ "modified": "2025-01-14 13:43:40.777180",
  "modified_by": "Administrator",
  "module": "Invoice Extractor",
  "name": "Google API",
